@@ -1,4 +1,5 @@
 import cv2
+import base64
 
 class VideoUtils:
 
@@ -17,7 +18,12 @@ class VideoUtils:
             cap: VideoCapture object
         """
 
-        cap = cv2.VideoCapture(0)
+        cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
+        if not cap.isOpened():
+            raise Exception("Error opening the camera")
+
+        cv2.waitKey(1000)
+        print("Camera opened successfully")
         return cap
 
 
@@ -32,10 +38,13 @@ class VideoUtils:
             frame: Frame from the video capture object
         """
 
-        _, frame = cap.read()
+        res, frame = cap.read()
+        if not res:
+            raise Exception("Error reading the frame")
         frame = cv2.flip(frame, 1)
+        # cv2.imshow("Rock Paper Scissors", frame)
         # frameRGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        return frame
+        return res, frame
 
     def checkQuit(self):
         """
@@ -64,6 +73,7 @@ class VideoUtils:
         
         cap.release()
         cv2.destroyAllWindows()
+        print("Camera released successfully")
 
 
 class DisplayUtils:
@@ -72,7 +82,7 @@ class DisplayUtils:
         pass
 
     
-    def showFrame(self, frame):
+    def showFrame(self, frame, socketio):
         """
         Display a frame.
 
@@ -83,8 +93,14 @@ class DisplayUtils:
             None
         """
 
-        cv2.imshow("Rock Paper Scissors", frame)
+        # cv2.imshow("Rock Paper Scissors", frame)
+        if frame is None:
+            raise Exception("Error displaying the frame")
+        _, buffer = cv2.imencode('.jpg', frame)
+        frame_encoded = base64.b64encode(buffer)
 
+        socketio.emit('video_feed', frame_encoded.decode('utf-8'))
+        socketio.sleep(0.01)
 
     def wait(self, ms):
         """
@@ -100,20 +116,29 @@ class DisplayUtils:
         cv2.waitKey(ms)
 
 
-    def checkGameStart(self):
-        """
-        Check if the user wants to start the game.
+    # def checkGameStart(self, sockietio):
+    #     """
+    #     Check if the user wants to start the game.
 
-        Args:
-            None
+    #     Args:
+    #         None
 
-        Returns:
-            True if the user wants to start the game, False otherwise
-        """
+    #     Returns:
+    #         True if the user wants to start the game, False otherwise
+    #     """
 
-        return cv2.waitKey(1) == ord(' ')
 
-    def countdown(self, frame, seconds):
+    #     # If receive a message from the socketio server, start the game
+    #     socketio.on('start_game', namespace='/game')
+    #     # Explain the line above:
+    #     #  - socketio.on() is a decorator that registers a handler for a particular event
+    #     # - 'start_game' is the event name
+    #     # - namespace='/game' is the namespace to which the event belongs
+    #     # - The function below is the handler for the event
+    
+    #     return 
+
+    def countdown(self, frame, seconds, socketio):
         """
         Display a countdown on the frame.
 
@@ -128,14 +153,14 @@ class DisplayUtils:
         startMsg = "Get Ready..."
         cv2.rectangle(frame, (0, 0), (y, x), (0, 0, 0), -1)
         frame = self.centerText(startMsg, frame)
-        self.showFrame(frame)
-        self.wait(2000)
+        self.showFrame(frame, socketio)
+        self.wait(1000)
 
         x, y, _ = frame.shape
         for i in range(seconds, 0, -1):
             cv2.rectangle(frame, (0, 0), (y, x), (0, 0, 0), -1)
             self.centerText(str(i), frame)
-            self.showFrame(frame)
+            self.showFrame(frame, socketio)
             self.wait(1000)
         return frame
         
@@ -190,21 +215,20 @@ class DisplayUtils:
         frame = self.centerText(msg, frame, colour=(0, 255, 0))
         return frame
 
-    def displayScore(self, frame, player_score, computer_score):
-        """
-        Display the score of the game.
+    # def displayScore(self, frame, player_score, computer_score):
+    #     """
+    #     Display the score of the game.
 
-        Args:
-            frame: Frame to display the score on
-            player_score: Player's score
-            computer_score: Computer's score
+    #     Args:
+    #         frame: Frame to display the score on
+    #         player_score: Player's score
+    #         computer_score: Computer's score
 
-        Returns:
-            frame: Frame with the score displayed on it
-        """
+    #     Returns:
+    #         frame: Frame with the score displayed on it
+    #     """
 
-        msg = f"Player: {player_score} | Computer: {computer_score}"
-        frame = cv2.putText(frame, msg, (10, frame.shape[0] - 25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
-        return frame
-
+    #     msg = f"Player: {player_score} | Computer: {computer_score}"
+    #     frame = cv2.putText(frame, msg, (10, frame.shape[0] - 25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+    #     return frame
 

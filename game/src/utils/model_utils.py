@@ -32,7 +32,9 @@ class ModelUtils:
             model: Gesture recognizer model
         """ 
 
-        model = load_model('utils\models\hand-gesture-recognition-code\mp_hand_gesture')
+        ## TODO: Make envrionment variable for path
+        # model = load_model('src/utils/models/hand-gesture-recognition-code/mp_hand_gesture')
+        model = load_model('utils/models/hand-gesture-recognition-code/mp_hand_gesture')
 
         return model
 
@@ -44,8 +46,10 @@ class ModelUtils:
         Returns:
             classNames: List of class names
         """
-
-        f = open('utils\models\hand-gesture-recognition-code\gesture.names', 'r')
+        
+        ## TODO: Make envrionment variable for path
+        # f = open('src/utils/models/hand-gesture-recognition-code/gesture.names', 'r')
+        f = open('utils/models/hand-gesture-recognition-code/gesture.names', 'r')
         classNames = f.read().split('\n')
         f.close()
         return classNames

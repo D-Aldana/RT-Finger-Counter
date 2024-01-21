@@ -1,10 +1,43 @@
 from random import randint
 
+class GameStart:
+    def __init__(self):
+        self.game_start = False
+
+    def setGameStart(self, game_start):
+        """
+        Set the game start flag.
+
+        Args:
+            game_start: Game start flag
+
+        Returns:
+            None
+        """
+
+        self.game_start = game_start
+
+    def getGameStart(self):
+        """
+        Get the game start flag.
+
+        Args:
+            None
+
+        Returns:
+            game_start: Game start flag
+        """
+
+        return self.game_start
+
+
 class GameUtils:
 
     def __init__(self):
+        self.username = None
         self.player_score = 0
         self.computer_score = 0
+        self.consecutive_wins = 0
 
     def rockPaperScissors(self):
         """
@@ -64,8 +97,10 @@ class GameUtils:
 
         if result == 1:
             self.addPlayerScore()
+            self.consecutive_wins += 1
         elif result == -1:
             self.addComputerScore()
+            self.consecutive_wins = 0
         
         return result
 
@@ -122,3 +157,150 @@ class GameUtils:
 
         return self.computer_score
 
+    def getConsecutiveWins(self):
+        """
+        Get the number of consecutive wins.
+
+        Args:
+            None
+
+        Returns:
+            consecutive_wins: Number of consecutive wins
+        """
+
+        return self.consecutive_wins
+    
+    def checkHighScore(self, redis, consecutive_wins, socketio):
+        """
+        Check if the consecutive wins is in the top 5 high scores. Add the score to the high scores if it is.
+
+        Args:
+            redis: Redis object
+            consecutive_wins: Number of consecutive wins
+
+        Returns:
+            True if the score is top 1, False otherwise
+        """
+        
+        if consecutive_wins == 0:
+            return False
+        
+        # while self.username is None:
+        #     socketio.emit('get_username')
+
+        if self.username is None:
+            return False
+
+        high_scores = redis.zrange("high_scores", 0, 4, desc=True, withscores=True)
+
+        if len(high_scores) < 5:
+            redis.zadd("high_scores", {self.username: consecutive_wins})
+            return True
+
+        lowest_score = high_scores[-1][1]
+
+        if consecutive_wins > lowest_score:
+            redis.zremrangebyscore("high_scores", lowest_score, lowest_score)
+            redis.zadd("high_scores", {self.username: consecutive_wins})
+            return True
+
+        return False
+        
+
+    def getHighScores(self, redis):
+        """
+        Get the high scores.
+
+        Args:
+            redis: Redis object
+
+        Returns:
+            high_scores: List of high scores
+        """
+
+        high_scores = redis.zrange("high_scores", 0, 4, desc=True, withscores=True)
+        high_scores_data = [{"username": username, "score": int(score)} for username, score in high_scores]
+        print(high_scores_data)
+        return high_scores_data
+
+    # def newHighScore(self, socketio):
+    #     """
+    #     Display a message that the player has a new high score.
+
+    #     Args:
+    #         None
+
+    #     Returns:
+    #         None
+    #     """
+
+    #     socketio.emit('new_high_score', {'username': self.username, 'consecutive_wins': self.consecutive_wins})
+
+    def resetScore(self):
+        """
+        Reset the player's and computer's score.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+
+        self.player_score = 0
+        self.computer_score = 0
+
+    def sendScore(self, socketio):
+        """
+        Send the score to the socketio server.
+
+        Args:
+            socketio: Socketio object
+            player_score: Player's score
+            computer_score: Computer's score
+
+        Returns:
+            None
+        """
+
+        socketio.emit('score', {'player_score': self.player_score, 'computer_score': self.computer_score, 'consecutive_wins': self.consecutive_wins})
+
+    def sendTopScores(self, socketio, redis):
+        """
+        Send the top scores to the socketio server.
+
+        Args:
+            socketio: Socketio object
+            redis: Redis object
+
+        Returns:
+            None
+        """
+
+        socketio.emit('top_scores', self.getHighScores(redis))
+
+    def getUsername(self):
+        """
+        Get the username.
+
+        Args:
+            None
+
+        Returns:
+            username: Username
+        """
+
+        return self.username
+
+    def setUsername(self, username):
+        """
+        Set the username.
+
+        Args:
+            username: Username
+
+        Returns:
+            None
+        """
+
+        self.username = username
