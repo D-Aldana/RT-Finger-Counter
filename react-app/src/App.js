@@ -299,6 +299,7 @@ const App = () => {
     
     {/* Display the top 5 scores*/}
     {usernameEntered && (<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', margin: '20px', width: '25%'}}>
+      <h2>Most Consecutive Wins</h2>
       <table style={{ borderCollapse: 'collapse', width: '100%' }}>
         <thead>
           <tr>
